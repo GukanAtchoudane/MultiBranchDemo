@@ -1,49 +1,67 @@
-pipeline { 
-  
-   agent any
+pipeline {
+    agent any
 
-   stages {
-   
-     stage('Checkout') { 
-        steps { 
-         sh 'echo "Checkout code"'
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Building branch: ${env.BRANCH_NAME}"
+                checkout scm
+            }
         }
-     }
-     
-     stage('Compile') { 
-        steps { 
-           sh 'echo "compile application..."'
+
+        stage('Build') {
+            steps {
+                echo "Running build for ${env.BRANCH_NAME}..."
+                sh 'echo "npm install / mvn build here"'
+            }
         }
-      }
 
-        stage('Review') { 
-        steps { 
-           sh 'echo "Review application..."'
+        stage('Test') {
+            steps {
+                echo "Running tests..."
+                sh 'echo "npm test / mvn test here"'
+            }
         }
-      }
 
-      stage('Test') { 
-        steps { 
-           sh 'echo "Test application..."'
+        stage('Deploy to Staging') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                echo 'Deploying to STAGING (only runs on develop branch)'
+            }
         }
-      }
-         stage("Package application") { 
-         steps { 
-           sh 'echo "package application..."'
-         }
 
-     }
-  
-   	
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying to PRODUCTION (only runs on main branch)'
+            }
+        }
 
-     stage("Deploy application") { 
-      
-         steps { 
-           sh 'echo "Deployment application..."'
-         }
+        stage('Feature Branch Notice') {
+            when {
+                not {
+                    anyOf {
+                        branch 'main'
+                        branch 'develop'
+                    }
+                }
+            }
+            steps {
+                echo "This is a feature branch (${env.BRANCH_NAME}) — build & test only, no deploy."
+            }
+        }
+    }
 
-     }
-  
-   	}
-
-   }
+    post {
+        success {
+            echo "✅ Pipeline succeeded on branch: ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "❌ Pipeline failed on branch: ${env.BRANCH_NAME}"
+        }
+    }
+}
